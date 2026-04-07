@@ -13,8 +13,12 @@ const firebaseConfig = {
 
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
 
-if (!firebaseConfig.apiKey) {
-  console.warn('Firebase API Key is missing. Please add VITE_FIREBASE_API_KEY to your Secrets in AI Studio.');
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([_, value]) => !value)
+  .map(([key]) => `VITE_FIREBASE_${key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()}`);
+
+if (missingKeys.length > 0) {
+  console.warn(`Missing Firebase configuration: ${missingKeys.join(', ')}. Please add these to your Secrets in AI Studio.`);
 }
 
 // Initialize Firebase SDK
