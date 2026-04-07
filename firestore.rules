@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: shops
+    // Fields: name (string), ownerId (string), members (list), createdAt (timestamp)
+    //
+    // Collection: shops/{shopId}/products
+    // Fields: name (string), sku (string), price (number), quantity (number), reorderLevel (number), category (string), updatedAt (timestamp)
+    //
+    // Collection: shops/{shopId}/sales
+    // Fields: productId (string), productName (string), quantity (number), totalPrice (number), timestamp (timestamp), sellerId (string)
+    //
+    // Collection: users
+    // Fields: displayName (string), email (string), photoURL (string), shops (list)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isShopMember(shopId) {
+      return isAuthenticated() && (
+        request.auth.uid == get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId ||
+        request.auth.uid in get(/databases/$(database)/documents/shops/$(shopId)).data.members
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "mseiyai@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    function isValidNumber(val, min, max) {
+      return val is number && val >= min && val <= max;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && 
+        request.resource.data.keys().hasAll(['displayName', 'email']) &&
+        isValidString(request.resource.data.displayName, 1, 100) &&
+        isValidString(request.resource.data.email, 5, 200);
+      allow update: if isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'shops']) &&
+        isValidString(request.resource.data.displayName, 1, 100);
+    }
+
+    match /shops/{shopId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid in resource.data.members ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.members is list &&
+        request.resource.data.members.size() > 0 &&
+        request.resource.data.members[0] == request.auth.uid &&
+        isValidString(request.resource.data.name, 1, 100);
+      allow update: if isAuthenticated() && 
+        (request.auth.uid == resource.data.ownerId || isAdmin()) &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.members is list;
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.ownerId || isAdmin());
+
+      match /products/{productId} {
+        allow read: if isShopMember(shopId) || isAdmin();
+        allow write: if isShopMember(shopId) || isAdmin();
+      }
+
+      match /sales/{saleId} {
+        allow read: if isShopMember(shopId) || isAdmin();
+        allow create: if isShopMember(shopId) || isAdmin();
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}

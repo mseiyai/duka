@@ -1,0 +1,5 @@
+{
+  "name": "Multi-Shop Inventory & Sales Manager",
+  "description": "A multi-tenant CRUD application for managing shop inventory, tracking sales, and handling re-orders across different shops.",
+  "requestFramePermissions": []
+}

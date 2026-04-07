@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "Shop": {
+      "title": "Shop",
+      "description": "A shop entity representing a tenant in the system.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the shop." },
+        "ownerId": { "type": "string", "description": "The UID of the shop owner." },
+        "members": { "type": "array", "items": { "type": "string" }, "description": "List of member UIDs." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the shop was created." }
+      },
+      "required": ["name", "ownerId", "members"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "An inventory item in a shop.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name." },
+        "sku": { "type": "string", "description": "Stock Keeping Unit." },
+        "price": { "type": "number", "description": "Unit price." },
+        "quantity": { "type": "number", "description": "Current stock quantity." },
+        "reorderLevel": { "type": "number", "description": "Quantity threshold for re-ordering." },
+        "category": { "type": "string", "description": "Product category." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp." }
+      },
+      "required": ["name", "price", "quantity", "reorderLevel"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A sales transaction record.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID of the product sold." },
+        "productName": { "type": "string", "description": "Name of the product at time of sale." },
+        "quantity": { "type": "number", "description": "Quantity sold." },
+        "totalPrice": { "type": "number", "description": "Total price of the sale." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the sale occurred." },
+        "sellerId": { "type": "string", "description": "UID of the user who made the sale." }
+      },
+      "required": ["productId", "productName", "quantity", "totalPrice", "timestamp", "sellerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and shop associations.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "User's display name." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "photoURL": { "type": "string", "description": "User's profile photo URL." },
+        "shops": { "type": "array", "items": { "type": "string" }, "description": "List of shop IDs the user belongs to." }
+      },
+      "required": ["displayName", "email"]
+    }
+  },
+  "firestore": {
+    "/shops/{shopId}": { "schema": "Shop", "description": "Shop details." },
+    "/shops/{shopId}/products/{productId}": { "schema": "Product", "description": "Shop inventory." },
+    "/shops/{shopId}/sales/{saleId}": { "schema": "Sale", "description": "Shop sales history." },
+    "/users/{userId}": { "schema": "User", "description": "User profile." }
+  }
+}
